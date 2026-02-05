@@ -61,6 +61,14 @@ const SaleSchema = new mongoose.Schema(
           type: Number,
           required: false,
         },
+        alypName: {
+          type: String,
+          required: false,
+        },
+        alypWeight: {
+          type: Number,
+          required: false,
+        },
       },
     ],
   },

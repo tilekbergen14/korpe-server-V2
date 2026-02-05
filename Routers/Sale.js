@@ -25,41 +25,44 @@ router.post("/", authorization, async (req, res) => {
       });
 
       // Loop through orders and add them to the sales array
-      for (const order of req.body.orders) {
-        sale.sales.push({
-          item: order.item?._id,
-          service: order.service?._id,
-          material: order.material?._id,
-          case: order.case?._id,
-          pillow: order.pillow?._id,
-          weight: order.weight,
-          length: order.lenght,
-          quantity: order.quantity,
-        });
-        if (order.weight && order.material?._id) {
-          const material = await Material.findById(order.material?._id);
-          if (material) {
-            material.total -= order.weight;
-            await material.save();
-          }
-        }
-
-        if (order.lenght && order.item?._id) {
-          const item = await Item.findById(order.item?._id);
-          if (item) {
-            item.total -= order.lenght;
-            await item.save();
-          }
-        }
-
-        if (order.quantity && order.case?._id) {
-          const caseItem = await Case.findById(order.case?._id);
-          if (caseItem) {
-            caseItem.total -= order.quantity;
-            await caseItem.save();
-          }
-        }
+     for (const order of req.body.orders) {
+  // Helper to decrement total safely
+  const decrement = async (Model, id, amount) => {
+    if (id && amount) {
+      const doc = await Model.findById(id);
+      if (doc) {
+        doc.total -= amount;
+        await doc.save();
       }
+    }
+  };
+
+  // 1️⃣ Handle pillow separately
+  if (order.pillow) {
+    await decrement(Material, order.pillow.material?._id, order.pillow.weight);
+    await decrement(Item, order.pillow.item?._id, order.pillow.length);
+  }
+
+  // 2️⃣ Add main order to sale.sales
+  sale.sales.push({
+    item: order.item?._id,
+    service: order.service?._id,
+    material: order.material?._id,
+    case: order.case?._id,
+    pillow: order.pillow?._id,
+    weight: order.weight,
+    length: order.length, // fixed typo
+    quantity: order.quantity,
+    alypName: order.alypName,
+    alypWeight: order.alypWeight,
+  });
+
+  // 3️⃣ Decrement totals for main order
+  await decrement(Material, order.material?._id, order.weight);
+  await decrement(Item, order.item?._id, order.length);
+  await decrement(Case, order.case?._id, order.quantity);
+}
+
 
       await sale.save();
 
